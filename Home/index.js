@@ -1,11 +1,11 @@
 const addBtn = document.getElementById('add-process');
 const runBtn = document.getElementById('run-scheduler');
-const refresh= document.getElementById('Refresh');
+const refresh = document.getElementById('Refresh');
+const algo = document.getElementById('algo');
 
-const algo= document.getElementById('algo');
 // COLORS
 const darkColors = [
-    "#blue", "red", "#0000ff", "#ff00ff",
+    "#0000ff", "red", "#0000ff", "#ff00ff",
     "#0000ff", "#ff4500", "#4682b4", "#ffa07a",
     "#6a5acd", "#32cd32", "#008080", "#da70d6",
     "#00fa9a", "#9932cc", "#adff2f", "#00ced1",
@@ -19,52 +19,48 @@ const darkColors = [
     "#ff0000", "#0000ff", "#808000", "#9400d3"
 ];
 
-const selector =()=>{
-    const pr= document.getElementsByClassName('pr');
-    const rr= document.getElementById('Rrobin');
+const selector = () => {
+    const pr = document.getElementsByClassName('pr');
+    const rr = document.getElementById('Rrobin');
     console.log(rr.style.display);
-    if(algo.value== 'priority'){
-        for(let it=0;it<pr.length; it++){
-            pr[it].style.display='block';
+    if (algo.value == 'priority') {
+        for (let it = 0; it < pr.length; it++) {
+            pr[it].style.display = 'block';
         }
-        rr.style.display='none';
-    }
-    else if(algo.value=='round'){
-        rr.style.display='block';
-        for(let it=0;it<pr.length; it++){
-            pr[it].style.display='none';
+        rr.style.display = 'none';
+    } else if (algo.value == 'round') {
+        rr.style.display = 'block';
+        for (let it = 0; it < pr.length; it++) {
+            pr[it].style.display = 'none';
         }
-       
-    }
-  else{
-    for(let it=0;it<pr.length; it++){
-        pr[it].style.display='none';
-    }
-   rr.style.display='none';
+    } else {
+        for (let it = 0; it < pr.length; it++) {
+            pr[it].style.display = 'none';
         }
-    
+        rr.style.display = 'none';
+    }
 }
 
-algo.onchange= selector;
+algo.onchange = selector;
 
 // VARIABLES
 const processes = [];
 let count = 1;
-let Ctime =0 ;
+let Ctime = 0;
 const readyQueue = [];
 const solutionTable = [];
+
 // ADDING PROCESSES
 function addProcess() {
-
-    if(processes.length>20) return ;
-    algo.setAttribute("disabled",true);
+    if (processes.length > 20) return;
+    algo.setAttribute("disabled", true);
     const at = parseInt(document.getElementById('arrival-time').value);
     let pr = parseInt(document.getElementById('Priority').value);
     const bt = parseInt(document.getElementById('burst-time').value);
-    if(isNaN(pr)) pr=0;
-console.log(pr);
+    if (isNaN(pr)) pr = 0;
+    console.log(pr);
     // SHOW IN TABLE
-    if (at >= 0 && bt >= 0 && pr>=0) {
+    if (at >= 0 && bt >= 0 && pr >= 0) {
         const table = document.getElementById('process-table');
         const newRow = document.createElement('tr');
         newRow.innerHTML = `
@@ -73,102 +69,76 @@ console.log(pr);
             <td>${bt}</td>
             <td>${pr}</td>`;
         table.appendChild(newRow);
-       
-    //PUSH IN PROCESSES ARRAY
-    processes.push({ id: count, arrivalTime: at, burstTime: bt , priority:pr});
-    count++;
+        // PUSH IN PROCESSES ARRAY
+        processes.push({ id: count, arrivalTime: at, burstTime: bt, priority: pr });
+        count++;
     }
     // Clear input fields after adding process
     document.getElementById('arrival-time').value = '';
-    document.getElementById('Priority').value='';
+    document.getElementById('Priority').value = '';
     document.getElementById('burst-time').value = '';
 }
 
-//CALL ADD FUN 
+// CALL ADD FUN
 addBtn.addEventListener("click", addProcess);
 
+function showPercentages(duration, label2, cover = 100) {
+    let percentageCompleted = 0;
+    const percentageInterval = setInterval(() => {
+        if (cover - percentageCompleted >= 1) {
+            label2.innerText = `${Math.round(label2.value + 1)}%`;
+            label2.value += 1;
+        } else {
+            label2.innerText = `${Math.round(label2.value + cover - percentageCompleted)}%`;
+            label2.value += cover - percentageCompleted;
+            clearInterval(showPercentages);
+        }
+        percentageCompleted++;
+        if (percentageCompleted >= cover) clearInterval(percentageInterval);
+    }, duration / cover);
+}
 
-function ShowPersentages(duration,label2,cover =100){
-let persentageCom=0;
-
-const persenInterval=  setInterval(() => {
-    if(cover - persentageCom >=1){
-      label2.innerText=`${Math.round(label2.value+1)}%`;
-      label2.value += 1;
+const solution = (pr, isPreemptive = false) => {
+    const solTable = document.getElementById('sol');
+    if (isPreemptive) {
+        solTable.innerHTML = '';
     }
-    else{
-        label2.innerText=`${Math.round(label2.value + cover - persentageCom)}%`;
-        label2.value+= cover -persentageCom;
-        clearInterval(ShowPersentages);
-    }
-      persentageCom++;
-     if(persentageCom>=cover) clearInterval(persenInterval);
-     
-
-  }, duration/cover);
+    const solRow = document.createElement('tr');
+    solRow.innerHTML = `
+        <td>p${pr.id}</td>
+        <td>${pr.arrivalTime}</td>
+        <td>${pr.burstTime}</td>
+        <td>${pr.timeOfCompletion}</td>
+        <td>${pr.turnAroundTime}</td>
+        <td>${pr.timeGetCPU}</td>
+        <td>${pr.waitingTimeForGetCPU}</td>`;
+    solTable.appendChild(solRow);
 }
 
-
-const Solution = (pr,isPreamtive=false)=>{
-         
-      
-          const sol_table= document.getElementById('sol');
-          if(isPreamtive==true){
-             sol_table.innerHTML='';
-          }
-          const sol_row = document.createElement('tr');
-          sol_row.innerHTML = `
-          <td>p${pr.id}</td>
-          <td>${pr.arrivalTime}</td>
-          <td>${pr.burstTime}</td>
-          <td>${pr.timeOfCompletion}</td>
-          <td>${pr.turnAroundTime}</td>
-          <td>${pr.timeGetCPU}</td>
-          <td>${pr.waitingTimeForGetCPU}</td>
-          `;
-          
-          console.log(sol_row);
-          sol_table.appendChild(sol_row);
-          console.log('com');
-    
+const efficiencyChart = () => {
+    // Efficiency chart implementation can go here
 }
 
-const EfficiencyChart= ()=>{
-    
-}
-
-//FCFS ALGO
-function FcFs() {
-    //ACCESS PROCESS DIV AND CLEAR FOR MULTIPLE RECALL
+// FCFS ALGORITHM
+function fcfs() {
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
-
     let currentTime = 0;
-    
-    // SORT ACCORDING TO ARRIVAL TIME
-    processes.sort((a, b) => a.arrivalTime - b.arrivalTime); 
+    processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
 
     function executeProcess(index) {
-        if (index >= processes.length) return; // Stop if all processes have been executed
+        if (index >= processes.length) return;
 
-        // CURRENT PROCESS
         const process = processes[index];
-        
-        const flex= document.createElement('div');
-        flex.classList.add('flex');
-        // CREATE LABEL NAME AS PROCESS
         const label = document.createElement('div');
         label.innerText = `Process ${process.id}`;
-        flex.appendChild(label);
+        processDiv.appendChild(label);
 
         const label2 = document.createElement('div');
         label2.innerText = `${0}%`;
-        label2.value=0;
-        flex.appendChild(label2);
+        label2.value = 0;
+        processDiv.appendChild(label2);
 
-        processDiv.appendChild(flex);
-
-        //CREATE PROGRESS BAR
         const newProcess = document.createElement('div');
         newProcess.classList.add('outer-div');
         newProcess.style.border = '1px solid black';
@@ -185,103 +155,85 @@ function FcFs() {
         newProcess.appendChild(childDiv);
         processDiv.appendChild(newProcess);
 
-        // Calculate start time based on completion time of previous process
-        const startTime=  process.arrivalTime * 1000-currentTime <0 ? 0:  process.arrivalTime * 1000-currentTime;
-       
-        // console.log('ctime : ', Ctime , ' At : ', process.arrivalTime, ' wt : ',process.arrivalTime -Ctime );
-        if(Ctime <  process.arrivalTime ){
-              readyQueue.push(['idle',  process.arrivalTime -Ctime]);
-              Ctime+= process.arrivalTime -Ctime;
+        const startTime = process.arrivalTime * 1000 - currentTime < 0 ? 0 : process.arrivalTime * 1000 - currentTime;
+
+        if (Ctime < process.arrivalTime) {
+            readyQueue.push(['idle', process.arrivalTime - Ctime]);
+            Ctime += process.arrivalTime - Ctime;
         }
         readyQueue.push([`${process.id}`, process.burstTime]);
 
         let timeGetCPU = Ctime;
+        Ctime += process.burstTime;
 
-        Ctime +=  process.burstTime ;
-        
         let timeOfCompletion = Ctime;
-        let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-        let waitingTimeForGetCPU =turnAroundTime - process.burstTime ;
-        
-        solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime':process.burstTime});
-        
-        //GANTT CHART AT EVERY PROCESS DONE
-        GantChart(process.id);
-        Solution(solutionTable[solutionTable.length-1]);
-        // Simulate process execution
+        let turnAroundTime = timeOfCompletion - process.arrivalTime;
+        let waitingTimeForGetCPU = turnAroundTime - process.burstTime;
+
+        solutionTable.push({
+            id: process.id,
+            timeGetCPU: timeGetCPU,
+            arrivalTime: process.arrivalTime,
+            timeOfCompletion: timeOfCompletion,
+            turnAroundTime: turnAroundTime,
+            waitingTimeForGetCPU: waitingTimeForGetCPU,
+            burstTime: process.burstTime
+        });
+
+        gantChart(process.id);
+        solution(solutionTable[solutionTable.length - 1]);
+
         setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
+            const duration = process.burstTime * 1000;
             childDiv.style.transition = `width ${duration}ms linear`;
-            childDiv.style.width = '100%';
-            
-            // Update current time
+            childDiv.style.width = '50vw';
+
             currentTime += process.arrivalTime * 1000 + duration;
-          
-            ShowPersentages(duration,label2);
-            // Wait for the transition to finish, then move to the next process
+            showPercentages(duration, label2);
+
             setTimeout(() => {
                 label.innerText = `P${process.id} (Completed)`;
-
-                // Start the next process after the current one completes
                 executeProcess(index + 1);
             }, duration);
-          
-        }, startTime); // Use startTime as the start time for the current process
+        }, startTime);
     }
-     
-    // Start with the first process
+
     executeProcess(0);
-   
 }
 
+// GANTT CHART
+const gantChart = (id) => {
+    let gantChart = document.getElementById('gantChart');
+    // let gantTimesline = document.getElementById('gantChart-timeline');
+    gantChart.style.border = '1px solid black';
+    gantChart.innerHTML = '';
+    // gantTimesline.innerHTML = '';
+    gantChart.style.display = 'flex';
 
+    let total = 0;
+    readyQueue.forEach((item) => { total += item[1]; });
 
+    readyQueue.forEach((item, index) => {
+        let div = document.createElement('div');
+        div.style.height = '20px';
+        div.style.width = `${(item[1] / total) * 90}vw`;
+        div.style.margin = '0.15px';
 
-//GANT CHART
-const GantChart = (id)=>{
-let gantChart= document.getElementById('gantChart');
-let ganttimesline= document.getElementById('gantChart-timeline');
-gantChart.style.border= '1px solid black';
-gantChart.innerHTML= '';
-ganttimesline.innerHTML='';
-gantChart.style.display= 'flex';
-
-let total=0;
-
-readyQueue.forEach((item)=>{total += item[1]});
-
-readyQueue.forEach((item,index)=>{
-    
-   let div= document.createElement('div');
-    div.style.height='20px';
-    div.style.width=`${(item[1]/total)*90}vw`;
-    div.style.margin='0.15px';
-// let ganttimestamp= div.cloneNode(true);
-
-    //COLOR OF PROCESS
-    if(item[0]==='idle'){
-        div.style.backgroundColor= 'black';
-    }
-    else{
-        // let red = Math.floor(Math.random()*255);
-        // let green = Math.floor(Math.random()*255);
-        // let blue = Math.floor(Math.random()*255);
-        div.style.backgroundColor=`${darkColors[item[0]]}`;
-        
-    }
-    if(item[0]=='idle') div.innerText= `${item[0]}`;
-    else div.innerText= `P${item[0]}`;
-    let ganttimestamp= div.cloneNode(true);
-    ganttimestamp.innerText=`${item[0]}`;
-    // ganttimestamp.style.backgroundColor='transparent';
-    gantChart.append(div);
-
-    ganttimesline.appendChild(ganttimestamp);
-})
+        if (item[0] === 'idle') {
+            div.style.backgroundColor = 'black';
+        } else {
+            div.style.backgroundColor = `${darkColors[item[0]]}`;
+        }
+        div.innerText = item[0] === 'idle' ? `${item[0]}` : `P${item[0]}`;
+        // let gantTimestamp = div.cloneNode(true);
+        // gantTimestamp.innerText = `${item[0]}`;
+        gantChart.append(div);
+        // gantTimesline.appendChild(gantTimestamp);
+    });
 }
 
-
-
+// Run FCFS when the run button is clicked
+// runBtn.addEventListener("click", fcfs);
 
 
 
@@ -380,8 +332,8 @@ const SJF=()=>{
         solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime':process.burstTime});
         
         //GANTT CHART AT EVERY PROCESS DONE
-        GantChart(process.id);
-        Solution(solutionTable[solutionTable.length-1]);
+        gantChart(process.id);
+        solution(solutionTable[solutionTable.length-1]);
 
         // Simulate process execution
         setTimeout(() => {
@@ -1009,7 +961,7 @@ console.log('if',solutionTable);
 
 
     solutionTable.forEach((it)=>{
-        Solution(it);
+        solution(it);
     });
 
     
@@ -1104,34 +1056,34 @@ console.log('if',solutionTable);
 
 runBtn.addEventListener("click", () => {
    
-    runBtn.setAttribute("disabled",true);
-    addBtn.setAttribute("disabled",true);
-    algo.setAttribute("disabled",true);
-    if(algo.value=='fcfs'){
-        console.log("fcfs");
-         FcFs();
-        }
-    else if(algo.value=='sjf'){
-        console.log("sjf");
-         SJF();
-    }
-    else if(algo.value=='priority'){
-        console.log("pr");
-        Priority();
-    }
-    else if(algo.value=='ljf'){
-        console.log("ljf");
-         LJF();
-    }
-    else if(algo.value=='round'){
-        console.log("round");
-         ROUND_ROBIN();
-    }
-    else if(algo.value=='srtf') SRTF();
-    else{
-        alert("Some Error Occured !!!!");
-        throw 'error!!';
-    }
+    // runBtn.setAttribute("disabled",true);
+    // addBtn.setAttribute("disabled",true);
+    // algo.setAttribute("disabled",true);
+    // if(algo.value=='fcfs'){
+    //     console.log("fcfs");
+         fcfs();
+    //     }
+    // else if(algo.value=='sjf'){
+    //     console.log("sjf");
+    //      SJF();
+    // }
+    // else if(algo.value=='priority'){
+    //     console.log("pr");
+    //     Priority();
+    // }
+    // else if(algo.value=='ljf'){
+    //     console.log("ljf");
+    //      LJF();
+    // }
+    // else if(algo.value=='round'){
+    //     console.log("round");
+    //      ROUND_ROBIN();
+    // }
+    // else if(algo.value=='srtf') SRTF();
+    // else{
+    //     alert("Some Error Occured !!!!");
+    //     throw 'error!!';
+    // }
 });
 refresh.addEventListener('click',()=>{
     window.location.reload();
