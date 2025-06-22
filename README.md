@@ -2,6 +2,14 @@
 
 An interactive **web-based simulator** that visually demonstrates how CPU scheduling works through animated progress bars, real-time Gantt chart generation, and dynamic performance metrics.
 
+## 🌍 Live Demo
+
+👉 Try it here: *(Best viewed on desktop)*
+
+**[https://raman-rajpoot.github.io/CPU-Scheduling/](https://raman-rajpoot.github.io/CPU-Scheduling/)**    
+
+
+No installation required — open the link, input processes, choose a scheduling algorithm, and watch the simulation in action!
 
 ---
 
