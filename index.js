@@ -1,3 +1,4 @@
+// GLOBLE VARIABLE
 const addBtn = document.getElementById('add-process');
 const runBtn = document.getElementById('run-scheduler');
 const refresh = document.getElementById('Refresh');
@@ -19,10 +20,11 @@ const darkColors = [
     "#ff0000", "#0000ff", "#808000", "#9400d3"
 ];
 
+// SELECT ALGO
 const selector = () => {
     const pr = document.getElementsByClassName('pr');
     const rr = document.getElementById('Rrobin');
-    console.log(rr.style.display);
+
     if (algo.value == 'priority') {
         for (let it = 0; it < pr.length; it++) {
             pr[it].style.display = 'block';
@@ -58,7 +60,7 @@ function addProcess() {
     let pr = parseInt(document.getElementById('Priority').value);
     const bt = parseInt(document.getElementById('burst-time').value);
     if (isNaN(pr)) pr = 0;
-    console.log(pr);
+
     // SHOW IN TABLE
     if (at >= 0 && bt >= 0 && pr >= 0) {
         const table = document.getElementById('process-table');
@@ -79,24 +81,25 @@ function addProcess() {
     document.getElementById('burst-time').value = '';
 }
 
-// CALL ADD FUN
+// CALL ADD FUNCTION
 addBtn.addEventListener("click", addProcess);
 
-function showPercentages(duration, label2, cover = 100) {
+// SHOW PERCENTAGE COMPLETION
+function showPercentages(duration, label2) {
     let percentageCompleted = 0;
-    const percentageInterval = setInterval(() => {
-        if (cover - percentageCompleted >= 1) {
-            label2.innerText = `${Math.round(label2.value + 1)}%`;
-            label2.value += 1;
-        } else {
-            label2.innerText = `${Math.round(label2.value + cover - percentageCompleted)}%`;
-            label2.value += cover - percentageCompleted;
-            clearInterval(showPercentages);
+    label2.value = 0;
+
+    const interval = setInterval(() => {
+        if (percentageCompleted >= 100) {
+            clearInterval(interval);
+            return;
         }
         percentageCompleted++;
-        if (percentageCompleted >= cover) clearInterval(percentageInterval);
-    }, duration / cover);
+        label2.innerText = `${percentageCompleted}%`;
+        label2.value = percentageCompleted;
+    }, duration / 100);
 }
+
 
 const solution = (pr, isPreemptive = false) => {
     const solTable = document.getElementById('sol');
@@ -115,9 +118,6 @@ const solution = (pr, isPreemptive = false) => {
     solTable.appendChild(solRow);
 }
 
-const efficiencyChart = () => {
-    // Efficiency chart implementation can go here
-}
 
 // FCFS ALGORITHM
 function fcfs() {
@@ -126,6 +126,7 @@ function fcfs() {
     let currentTime = 0;
     processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
 
+    // EXCUTE PROCESS
     function executeProcess(index) {
         if (index >= processes.length) return;
 
@@ -135,14 +136,20 @@ function fcfs() {
         processDiv.appendChild(label);
 
         const label2 = document.createElement('div');
-        label2.innerText = `${0}%`;
+        label2.innerText = `0%`;
         label2.value = 0;
+        label2.style.textAlign = 'right';
+        label2.style.width = '40vw';
+        label2.style.marginTop = '-1.1rem';
         processDiv.appendChild(label2);
 
+
+
+        // NEW PROCESS
         const newProcess = document.createElement('div');
         newProcess.classList.add('outer-div');
         newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
+        newProcess.style.width = '40vw';
         newProcess.style.height = '15px';
         newProcess.style.margin = '10px';
 
@@ -152,6 +159,7 @@ function fcfs() {
         childDiv.style.width = '0vw';
         childDiv.style.height = '15px';
         childDiv.style.backgroundColor = 'green';
+        childDiv.style.transition = 'none';
         newProcess.appendChild(childDiv);
         processDiv.appendChild(newProcess);
 
@@ -179,14 +187,18 @@ function fcfs() {
             waitingTimeForGetCPU: waitingTimeForGetCPU,
             burstTime: process.burstTime
         });
-
+        // GNATT CHART
         gantChart(process.id);
         solution(solutionTable[solutionTable.length - 1]);
-
+        // SIMULATION
         setTimeout(() => {
             const duration = process.burstTime * 1000;
+
+            childDiv.style.width = '0vw';
+            childDiv.style.transition = 'none';
+            void childDiv.offsetWidth;
             childDiv.style.transition = `width ${duration}ms linear`;
-            childDiv.style.width = '50vw';
+            childDiv.style.width = '40vw';
 
             currentTime += process.arrivalTime * 1000 + duration;
             showPercentages(duration, label2);
@@ -200,90 +212,101 @@ function fcfs() {
 
     executeProcess(0);
 }
-
 // GANTT CHART
-const gantChart = (id) => {
-    let gantChart = document.getElementById('gantChart');
-    // let gantTimesline = document.getElementById('gantChart-timeline');
-    gantChart.style.border = '1px solid black';
+const gantChart = () => {
+    const gantChart = document.getElementById('gantChart');
     gantChart.innerHTML = '';
-    // gantTimesline.innerHTML = '';
+    gantChart.style.border = '1px solid #ccc';
     gantChart.style.display = 'flex';
+    gantChart.style.alignItems = 'center';
+    gantChart.style.height = '40px';
+    gantChart.style.marginTop = '20px';
+    gantChart.style.position = 'relative';
+    gantChart.style.overflow = 'hidden';
+    gantChart.style.borderRadius = '8px';
+    gantChart.style.fontSize = '12px';
+    gantChart.style.fontFamily = 'sans-serif';
 
-    let total = 0;
-    readyQueue.forEach((item) => { total += item[1]; });
+    const totalTime = readyQueue.reduce((sum, item) => sum + item[1], 0);
 
-    readyQueue.forEach((item, index) => {
-        let div = document.createElement('div');
-        div.style.height = '20px';
-        div.style.width = `${(item[1] / total) * 90}vw`;
-        div.style.margin = '0.15px';
+    let currentTime = 0;
 
-        if (item[0] === 'idle') {
-            div.style.backgroundColor = 'black';
+    readyQueue.forEach(([pid, duration], index) => {
+        const div = document.createElement('div');
+        const percentWidth = (duration / totalTime) * 100;
+        div.style.width = `${percentWidth}%`;
+        div.style.height = '100%';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.color = '#fff';
+        div.style.fontWeight = 'bold';
+        div.style.position = 'relative';
+        div.style.borderRight = '1px solid #fff';
+        div.style.boxSizing = 'border-box';
+
+        if (pid === 'idle') {
+            div.style.backgroundColor = 'gray';
+            div.innerText = 'IDLE';
         } else {
-            div.style.backgroundColor = `${darkColors[item[0]]}`;
+            div.style.backgroundColor = darkColors[pid] || '#4CAF50';
+            div.innerText = `P${pid}`;
         }
-        div.innerText = item[0] === 'idle' ? `${item[0]}` : `P${item[0]}`;
-        // let gantTimestamp = div.cloneNode(true);
-        // gantTimestamp.innerText = `${item[0]}`;
-        gantChart.append(div);
-        // gantTimesline.appendChild(gantTimestamp);
+
+        div.title = `P${pid} | Duration: ${duration} | Start: ${currentTime}`;
+
+        const timeStamp = document.createElement('span');
+        timeStamp.innerText = `${currentTime}`;
+        timeStamp.style.position = 'absolute';
+        timeStamp.style.bottom = '-18px';
+        timeStamp.style.left = '0';
+        timeStamp.style.fontSize = '10px';
+        timeStamp.style.color = '#333';
+        div.appendChild(timeStamp);
+
+        gantChart.appendChild(div);
+        currentTime += duration;
     });
-}
+};
 
-// Run FCFS when the run button is clicked
-// runBtn.addEventListener("click", fcfs);
-
-
-
-const SJF=()=>{
-  
+// SHORTEST JOB FIRST (NOT PRIMITIVE)
+const SJF = () => {
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
 
-    //CURRENT TIME 
     let currentTime = 0;
-  
-    // Sort processes based on arrival time AND BURST TIME
-    processes.sort((a, b) =>{ 
-        if(a.arrivalTime == b.arrivalTime) return a.burstTime - b.burstTime;
-         return a.arrivalTime - b.arrivalTime;
-    }
-         
-    ); 
-
-    const queue = []; // QUEUE CONTAINS PROCESS ACC. TO BURST TIME + ARRIVAL TIME
-    const dequeue = []; // QUEUE HELP TO SORT ARRIVED PROCCESS BASED ON BURST TIME
-
     let ind = 0;
+    let Ctime = 0;
+
+
+    processes.sort((a, b) =>
+        a.arrivalTime === b.arrivalTime ? a.burstTime - b.burstTime : a.arrivalTime - b.arrivalTime
+    );
+
+    const queue = [];
+    const dequeue = [];
 
     while (queue.length !== processes.length) {
 
-        // UPDATE CURRENT TIME (ADDING IDLE TIME)
-        if (ind< processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
+        if (ind < processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
             Ctime = processes[ind].arrivalTime;
         }
-        
-        // INCLUDE PROCESS WHICH ARRIVED
+
         while (ind < processes.length && Ctime >= processes[ind].arrivalTime) {
-            dequeue.push(processes[ind]);
-            ind++;
+            dequeue.push(processes[ind++]);
         }
-        
-        //SORT BASED ON BURST TIME
+
         dequeue.sort((a, b) => a.burstTime - b.burstTime);
-        
-        //REMOVE FIRST ELEMENT AND ADD IN READYQUEUE
         const currentProcess = dequeue.shift();
         Ctime += currentProcess.burstTime;
         queue.push(currentProcess);
     }
 
-    Ctime=0;
+    Ctime = 0;
 
     function executeProcess(index) {
-        if (index >= queue.length) return; // Stop if all processes have been executed
+        if (index >= queue.length) return;
+
         const process = queue[index];
 
         const label = document.createElement('div');
@@ -291,102 +314,108 @@ const SJF=()=>{
         processDiv.appendChild(label);
 
         const label2 = document.createElement('div');
-        label2.innerText = `${0}%`;
-        label2.value=0;
+        label2.innerText = `0%`;
+        label2.value = 0;
+        label2.style.textAlign = 'right';
+        label2.style.width = '40vw';
+        label2.style.marginTop = '-1.1rem';
         processDiv.appendChild(label2);
-
+        // NEW PROCESS
         const newProcess = document.createElement('div');
         newProcess.classList.add('outer-div');
-        newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
-        newProcess.style.height = '15px';
-        newProcess.style.margin = '10px';
+        newProcess.style.cssText = `
+            border: 1px solid black;
+            width: 40vw;
+            height: 15px;
+            margin: 10px;
+        `;
 
         const childDiv = document.createElement('div');
         childDiv.classList.add('inner-class');
         childDiv.setAttribute('id', `p${process.id}`);
-        childDiv.style.width = '0vw';
-        childDiv.style.height = '15px';
-        childDiv.style.backgroundColor = 'green';
+        childDiv.style.cssText = `
+            width: 0%; 
+            height: 15px;
+            background-color: green;
+            transition: width ${process.burstTime * 1000}ms linear; /* Animate the width change */
+        `;
         newProcess.appendChild(childDiv);
         processDiv.appendChild(newProcess);
 
-        // Calculate start time based on completion time of previous process
 
-        const startTime=  process.arrivalTime * 1000-currentTime <0 ? 0:  process.arrivalTime * 1000-currentTime;
-       
-        // console.log('ctime : ', Ctime , ' At : ', process.arrivalTime, ' wt : ',process.arrivalTime -Ctime );
-        if(Ctime <  process.arrivalTime ){
-              readyQueue.push(['idle',  process.arrivalTime -Ctime]);
-              Ctime+= process.arrivalTime -Ctime;
+        const startTime = Math.max(0, process.arrivalTime * 1000 - currentTime);
+
+        if (Ctime < process.arrivalTime) {
+            readyQueue.push(['idle', process.arrivalTime - Ctime]);
+            Ctime += process.arrivalTime - Ctime;
         }
+
         readyQueue.push([process.id, process.burstTime]);
-        let timeGetCPU = Ctime;
 
-        Ctime +=  process.burstTime ;
-        
-        let timeOfCompletion = Ctime;
-        let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-        let waitingTimeForGetCPU =turnAroundTime - process.burstTime ;
-        
-        solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime':process.burstTime});
-        
-        //GANTT CHART AT EVERY PROCESS DONE
+        const timeGetCPU = Ctime;
+        Ctime += process.burstTime;
+
+        const timeOfCompletion = Ctime;
+        const turnAroundTime = timeOfCompletion - process.arrivalTime;
+        const waitingTime = turnAroundTime - process.burstTime;
+
+        solutionTable.push({
+            id: process.id,
+            timeGetCPU,
+            arrivalTime: process.arrivalTime,
+            timeOfCompletion,
+            turnAroundTime,
+            waitingTimeForGetCPU: waitingTime,
+            burstTime: process.burstTime
+        });
+        // GANTT CHART
         gantChart(process.id);
-        solution(solutionTable[solutionTable.length-1]);
+        solution(solutionTable[solutionTable.length - 1]);
 
-        // Simulate process execution
         setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
+            const duration = process.burstTime * 1000;
+            childDiv.style.width = '0vw';
+            childDiv.style.transition = 'none';
+            void childDiv.offsetWidth;
             childDiv.style.transition = `width ${duration}ms linear`;
-            childDiv.style.width = '100%';
+            childDiv.style.width = '40vw';
 
-            // Update current time
-            currentTime += process.arrivalTime * 1000 + duration;  
-            // Wait for the transition to finish, then move to the next process
-            
-            showPercentages(duration,label2);
             setTimeout(() => {
-                label.innerText = `P${process.id} (Completed)`;
+                childDiv.style.width = '100%';
+                currentTime += startTime + duration;
+                showPercentages(duration, label2);
 
-                // Start the next process after the current one completes
-                executeProcess(index + 1);
-            }, duration);
-          
-        }, startTime); // Use startTime as the start time for the current process
+                setTimeout(() => {
+                    label.innerText = `P${process.id} (Completed)`;
+                    executeProcess(index + 1);
+                }, duration);
+
+            }, startTime);
+        }, 0);
     }
-    // Start with the first process
+
     executeProcess(0);
-}
+};
 
+// PRIORITY ALGO
+const Priority = () => {
 
-
-
-
-
-
-
-
-
-const Priority=()=>{
-
-    
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
     let currentTime = 0;
-  
-    processes.sort((a, b) =>{ 
-        if(a.arrivalTime == b.arrivalTime) return a.burstTime - b.burstTime;
-         return a.arrivalTime - b.arrivalTime;
+    // SORT PROCESS
+    processes.sort((a, b) => {
+        if (a.arrivalTime == b.arrivalTime) return a.burstTime - b.burstTime;
+        return a.arrivalTime - b.arrivalTime;
     }
-         
-    ); // Sort processes based on arrival time
+
+    );
     const queue = [];
     const dequeue = [];
     let ind = 0;
 
     while (queue.length !== processes.length) {
-        if (ind< processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
+        if (ind < processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
             Ctime = processes[ind].arrivalTime;
         }
 
@@ -395,17 +424,16 @@ const Priority=()=>{
             ind++;
         }
 
-        dequeue.sort((a, b) =>b.priority - a.priority);
+        dequeue.sort((a, b) => b.priority - a.priority);
 
         const currentProcess = dequeue.shift();
         Ctime += currentProcess.burstTime;
         queue.push(currentProcess);
     }
 
-    console.log('Queue:', queue);
-    Ctime=0;
+    Ctime = 0;
     function executeProcess(index) {
-        if (index >= queue.length) return; // Stop if all processes have been executed
+        if (index >= queue.length) return;
         const process = queue[index];
 
         const label = document.createElement('div');
@@ -414,13 +442,16 @@ const Priority=()=>{
 
         const label2 = document.createElement('div');
         label2.innerText = `${0}%`;
-        label2.value=0;
+        label2.value = 0;
+        label2.style.textAlign = 'right';
+        label2.style.width = '40vw';
+        label2.style.marginTop = '-1.1rem';
         processDiv.appendChild(label2);
-
+        // NEW PROCESS
         const newProcess = document.createElement('div');
         newProcess.classList.add('outer-div');
         newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
+        newProcess.style.width = '40vw';
         newProcess.style.height = '15px';
         newProcess.style.margin = '10px';
 
@@ -433,117 +464,98 @@ const Priority=()=>{
         newProcess.appendChild(childDiv);
         processDiv.appendChild(newProcess);
 
-        // Calculate start time based on completion time of previous process
 
-        const startTime=  process.arrivalTime * 1000-currentTime <0 ? 0:  process.arrivalTime * 1000-currentTime;
-       
-        // console.log('ctime : ', Ctime , ' At : ', process.arrivalTime, ' wt : ',process.arrivalTime -Ctime );
-        if(Ctime <  process.arrivalTime ){
-              readyQueue.push(['idle',  process.arrivalTime -Ctime]);
-              Ctime+= process.arrivalTime -Ctime;
+        const startTime = process.arrivalTime * 1000 - currentTime < 0 ? 0 : process.arrivalTime * 1000 - currentTime;
+
+
+        if (Ctime < process.arrivalTime) {
+            readyQueue.push(['idle', process.arrivalTime - Ctime]);
+            Ctime += process.arrivalTime - Ctime;
         }
         readyQueue.push([`${process.id}`, process.burstTime]);
         let timeGetCPU = Ctime;
 
-        Ctime +=  process.burstTime ;
-        
+        Ctime += process.burstTime;
+
         let timeOfCompletion = Ctime;
-        let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-        let waitingTimeForGetCPU =turnAroundTime - process.burstTime ;
-        
-        solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime':process.burstTime});
-        
-        //GANTT CHART AT EVERY PROCESS DONE
+        let turnAroundTime = timeOfCompletion - process.arrivalTime;
+        let waitingTimeForGetCPU = turnAroundTime - process.burstTime;
+
+        solutionTable.push({ 'id': process.id, 'timeGetCPU': timeGetCPU, 'arrivalTime': process.arrivalTime, 'timeOfCompletion': timeOfCompletion, 'turnAroundTime': turnAroundTime, 'waitingTimeForGetCPU': waitingTimeForGetCPU, 'burstTime': process.burstTime });
+        // GANTT CHART
         gantChart(process.id);
-        solution(solutionTable[solutionTable.length-1]);
-        // Simulate process execution
+        solution(solutionTable[solutionTable.length - 1]);
+        //SIMULATION
         setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
+            const duration = process.burstTime * 1000;
+            childDiv.style.width = '0vw';
+            childDiv.style.transition = 'none';
+            void childDiv.offsetWidth;
             childDiv.style.transition = `width ${duration}ms linear`;
-            childDiv.style.width = '100%';
+            childDiv.style.width = '40vw';
 
-            // Update current time
+
             currentTime += process.arrivalTime * 1000 + duration;
-            
-            showPercentages(duration,label2);
 
-            // Wait for the transition to finish, then move to the next process
+            showPercentages(duration, label2);
+
+
             setTimeout(() => {
                 label.innerText = `P${process.id} (Completed)`;
 
-                // Start the next process after the current one completes
                 executeProcess(index + 1);
             }, duration);
-          
-        }, startTime); // Use startTime as the start time for the current process
+
+        }, startTime);
     }
-     
-    // Start with the first process
+
     executeProcess(0);
-   
+
 }
 
 
+// LONGEST JOB FIRST
+const LJF = () => {
 
-
-
-
-
-
-
-
-
-
-
-const LJF=()=>{
-
-    
-   
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
-
-    //CURRENT TIME 
     let currentTime = 0;
-  
-    // Sort processes based on arrival time AND BURST TIME
-    processes.sort((a, b) =>{ 
-        if(a.arrivalTime == b.arrivalTime) return b.burstTime > a.burstTime;
-         return a.arrivalTime - b.arrivalTime;
+    // SORT PROCESS
+    processes.sort((a, b) => {
+        if (a.arrivalTime == b.arrivalTime) return b.burstTime > a.burstTime;
+        return a.arrivalTime - b.arrivalTime;
     }
-         
-    ); 
 
-    const queue = []; // QUEUE CONTAINS PROCESS ACC. TO BURST TIME + ARRIVAL TIME
-    const dequeue = []; // QUEUE HELP TO SORT ARRIVED PROCCESS BASED ON BURST TIME
+    );
+
+    const queue = [];
+    const dequeue = [];
 
     let ind = 0;
 
     while (queue.length !== processes.length) {
 
-        // UPDATE CURRENT TIME (ADDING IDLE TIME)
-        if (ind< processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
+
+        if (ind < processes.length && Ctime < processes[ind].arrivalTime && dequeue.length === 0) {
             Ctime = processes[ind].arrivalTime;
         }
-        
-        // INCLUDE PROCESS WHICH ARRIVED
+
         while (ind < processes.length && Ctime >= processes[ind].arrivalTime) {
             dequeue.push(processes[ind]);
             ind++;
         }
-        
-        //SORT BASED ON BURST TIME
+
         dequeue.sort((a, b) => b.burstTime - a.burstTime);
-        
-        //REMOVE FIRST ELEMENT AND ADD IN READYQUEUE
+
         const currentProcess = dequeue.shift();
         Ctime += currentProcess.burstTime;
         queue.push(currentProcess);
     }
 
-    Ctime=0;
+    Ctime = 0;
 
     function executeProcess(index) {
-        if (index >= queue.length) return; // Stop if all processes have been executed
+        if (index >= queue.length) return;
         const process = queue[index];
 
         const label = document.createElement('div');
@@ -552,13 +564,16 @@ const LJF=()=>{
 
         const label2 = document.createElement('div');
         label2.innerText = `${0}%`;
-        label2.value=0;
+        label2.value = 0;
+        label2.style.textAlign = 'right';
+        label2.style.width = '40vw';
+        label2.style.marginTop = '-1.1rem';
         processDiv.appendChild(label2);
-
+        // NEW PROCESS
         const newProcess = document.createElement('div');
         newProcess.classList.add('outer-div');
         newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
+        newProcess.style.width = '40vw';
         newProcess.style.height = '15px';
         newProcess.style.margin = '10px';
 
@@ -571,497 +586,445 @@ const LJF=()=>{
         newProcess.appendChild(childDiv);
         processDiv.appendChild(newProcess);
 
-        // Calculate start time based on completion time of previous process
 
-        const startTime=  process.arrivalTime * 1000-currentTime <0 ? 0:  process.arrivalTime * 1000-currentTime;
-       
-        // console.log('ctime : ', Ctime , ' At : ', process.arrivalTime, ' wt : ',process.arrivalTime -Ctime );
-        if(Ctime <  process.arrivalTime ){
-              readyQueue.push(['idle',  process.arrivalTime -Ctime]);
-              Ctime+= process.arrivalTime -Ctime;
+        const startTime = process.arrivalTime * 1000 - currentTime < 0 ? 0 : process.arrivalTime * 1000 - currentTime;
+
+        console.log('ctime : ', Ctime, ' At : ', process.arrivalTime, ' wt : ', process.arrivalTime - Ctime);
+        if (Ctime < process.arrivalTime) {
+            readyQueue.push(['idle', process.arrivalTime - Ctime]);
+            Ctime += process.arrivalTime - Ctime;
         }
         readyQueue.push([process.id, process.burstTime]);
         let timeGetCPU = Ctime;
 
-        Ctime +=  process.burstTime ;
-        
+        Ctime += process.burstTime;
+
         let timeOfCompletion = Ctime;
-        let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-        let waitingTimeForGetCPU =turnAroundTime - process.burstTime ;
-        
-        solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime':process.burstTime});
-        
-        //GANTT CHART AT EVERY PROCESS DONE
+        let turnAroundTime = timeOfCompletion - process.arrivalTime;
+        let waitingTimeForGetCPU = turnAroundTime - process.burstTime;
+
+        solutionTable.push({ 'id': process.id, 'timeGetCPU': timeGetCPU, 'arrivalTime': process.arrivalTime, 'timeOfCompletion': timeOfCompletion, 'turnAroundTime': turnAroundTime, 'waitingTimeForGetCPU': waitingTimeForGetCPU, 'burstTime': process.burstTime });
+
+        // GANTT CHART
         gantChart(process.id);
-        solution(solutionTable[solutionTable.length-1]);
-
-        // Simulate process execution
+        solution(solutionTable[solutionTable.length - 1]);
+        // SIMULATION
         setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
+            const duration = process.burstTime * 1000;
+            childDiv.style.width = '0vw';
+            childDiv.style.transition = 'none';
+            void childDiv.offsetWidth;
             childDiv.style.transition = `width ${duration}ms linear`;
-            childDiv.style.width = '100%';
+            childDiv.style.width = '40vw';
 
-            // Update current time
-            currentTime += process.arrivalTime * 1000 + duration;  
-            // Wait for the transition to finish, then move to the next process
-            
-            showPercentages(duration,label2);
+            currentTime += process.arrivalTime * 1000 + duration;
+
+            showPercentages(duration, label2);
             setTimeout(() => {
                 label.innerText = `P${process.id} (Completed)`;
 
-                // Start the next process after the current one completes
                 executeProcess(index + 1);
             }, duration);
-          
-        }, startTime); // Use startTime as the start time for the current process
+
+        }, startTime);
     }
-    // Start with the first process
+
     executeProcess(0);
 }
 
-
-
-
-
-
-
-const ROUND_ROBIN=()=>{
-
-    
-    let l= document.getElementById('timeQuant').value;
-    let time_slot =l;
-    document.getElementById('Rrobin').setAttribute('disabled',true);
+// ROUND ROBIN ALGO
+function roundRobin() {
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
-    let currentTime = 0;
-    const Done =[];
-  
-    processes.sort((a, b) =>{ 
-         return a.arrivalTime - b.arrivalTime;
-    }); // Sort processes based on arrival time
+    readyQueue.length = 0;
+    solutionTable.length = 0;
 
-    const Total_Time =[];
-    processes.forEach((vl)=>{
-        Total_Time.push([vl.id,vl.burstTime]);
-    });
+    let quantumInput = document.getElementById('quantum');
+    let quantum = quantumInput ? parseInt(quantumInput.value) : 2;
+    if (isNaN(quantum) || quantum <= 0) quantum = 2;
 
+    const procList = processes.map(p => ({
+        ...p,
+        originalBurst: p.burstTime,
+        remaining: p.burstTime,
+        completed: false,
+        start: null
+    }));
+
+    let time = 0;
+    let completedCount = 0;
+    const n = procList.length;
+    const processElements = {};
     const queue = [];
-    const Arrived = [];
-    let ind = 0;
-    
-    const Pqueue =[...processes];
-   
-    let flagCon =true;
-    while (Arrived.length != 0 || Pqueue.length!= 0) {
-       
-       let wtTime =0;
-       if(ind< Pqueue.length && Ctime < Pqueue[ind].arrivalTime && Arrived.length == 0){
-         wtTime =Pqueue[ind].arrivalTime - Ctime;
-          Ctime += wtTime; 
-          readyQueue.push(['idle',wtTime])  
-       }
 
-       while(Pqueue.length > 0 && Pqueue[0].arrivalTime <= Ctime){
-      
-            Arrived.push(Pqueue[0]);
-            // let index =Pqueue.indexOf(x);
-            Pqueue.shift();
-        
-       }
-    //    dequeue.sort((a,b)=>{return b.burstTime >= a.burstTime})
-      let dur= Math.min(time_slot, Arrived[0].burstTime);
-      
-      queue.push({'id':Arrived[0].id, 'burstTime':dur,'waiting' :wtTime});
-      readyQueue.push([Arrived[0].id,dur]);
-      Arrived[0].burstTime=Arrived[0].burstTime- dur;
-     
-     let  pr = Total_Time.filter((vl)=>{return vl[0]==Arrived[0].id});
-     
-         let timeGetCPU = Ctime;
-    
-    //  console.log(pr);
-      Ctime+= dur;
-     
-      let process = Arrived[0];
-      let timeOfCompletion = Ctime;
-      let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-      let waitingTimeForGetCPU =turnAroundTime - pr[0][1] ;
-      
-    let isExist = solutionTable.filter((it)=>{
-          return it.id==Arrived[0].id;
-    })
-if(Arrived.length>0){
-    // console.log(isExist);    
-    if(isExist.length == 0){
-      solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime': pr[0][1]});
-    }
-    else{
-        // console.log('else',solutionTable);
-        isExist[0].timeOfCompletion = timeOfCompletion;
-        isExist[0].turnAroundTime= turnAroundTime;
-        isExist[0].waitingTimeForGetCPU= waitingTimeForGetCPU;
-        isExist[0].arrivalTime += process.arrivalTime; 
-    }
-    // console.log('if',solutionTable);
-}
-
-while(Pqueue.length > 0 && Pqueue[0].arrivalTime <= Ctime){
-      
-    Arrived.push(Pqueue[0]);
-    // let index =Pqueue.indexOf(x);
-    Pqueue.shift();
-
-}
-
-      if(Arrived[0].burstTime==0){
-        Arrived.shift();
-      }
-      else{
-        const pr=Arrived[0];
-        Arrived.shift();
-        Arrived.push(pr);
-      }
-     wtTime =0;
-    }
-
-    // console.log('Queue:', queue);
-    Ctime=0;
-
-    const Comp = [];
-    
-   solutionTable.forEach((it)=>{
-       solution(it);
-   })
-
-    function executeProcess(index) {
-        if (index >= queue.length) return; // Stop if all processes have been executed
-        const process = queue[index];
-
-        let include = Comp.indexOf(process.id);
-
-        if(include == -1){
-        const label = document.createElement('div');
-        label.innerText = `P${process.id}`;
-        label.setAttribute('id', `l${process.id}`);
-        processDiv.appendChild(label);
-
-        const label2 = document.createElement('div');
-        label2.innerText = `${0}%`;
-        label2.value=0;
-        label2.setAttribute('id',`l2${process.id}`);
-        processDiv.appendChild(label2);
-
-        const newProcess = document.createElement('div');
-        newProcess.classList.add('outer-div');
-        newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
-        newProcess.style.height = '15px';
-        newProcess.style.margin = '10px';
-
-        const childDiv = document.createElement('div');
-        childDiv.classList.add('inner-class');
-        childDiv.setAttribute('id', `p${process.id}`);
-        childDiv.style.width = '0vw';
-        childDiv.style.height = '15px';
-        childDiv.style.backgroundColor = 'green';
-        newProcess.appendChild(childDiv);
-        processDiv.appendChild(newProcess);
-        Comp.push(process.id);
-        // Calculate start time based on completion time of previous process
+    function enqueueArrivals() {
+        for (const proc of procList) {
+            if (
+                proc.arrivalTime <= time &&
+                !proc.completed &&
+                !queue.includes(proc)
+            ) {
+                queue.push(proc);
+            }
         }
-     let label = document.getElementById(`l${process.id}`);
-     let label2 =document.getElementById(`l2${process.id}`);
-     let Cdiv = document.getElementById(`p${process.id}`)
-        setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
-            Cdiv.style.transition = `width ${duration}ms linear`;
-
-            
-            
-           let  total = Total_Time.filter((vl)=>{return vl[0]==process.id});
-        //    console.log(total);
-
-           let addition =0;
-            if(include == -1){
-                Done.push([process.id,process.burstTime]);
-            }
-            else{
-              let  Cpr=Done.filter((vl)=>{ return vl[0]==process.id});
-              addition= Cpr[0][1];
-                // console.log('addi',addition,'Cpr',Cpr);
-                Cpr[0][1]+=(process.burstTime);
-
-            }
-            Cdiv.style.width = ` ${ (((addition + process.burstTime)/total[0][1]) * 50)}vw`;
-        //   console.log('width ',(process.burstTime/total[0][1]) * 50, ' process bt ', process.burstTime, ' total ',total[0][1] );
-            // Update current time
-            let cover=(process.burstTime/total[0][1])*100;
-          
-            showPercentages(duration,label2,cover);
-            currentTime += process.arrivalTime * 1000 + duration;
-            
-            
-            gantChart(process.id)
-            // Wait for the transition to finish, then move to the next process
-            setTimeout(() => {
-            //  if(Cdiv.style.width == '50vw')  label.innerText = `P${process.id} (Completed)`;
-                 
-                // Start the next process after the current one completes
-                executeProcess(index + 1);
-                if( addition +process.burstTime ==total[0][1]){
-                    label.innerText=`P${process.id} Completed`;
-              }
-            }, duration);
-          
-        }, process.waiting*1000); // Use startTime as the start time for the current process
     }
-     
-    // Start with the first process
-    executeProcess(0);
-   
 
+    function ensureProcessElements(proc) {
+        if (!processElements[proc.id]) {
+            const container = document.createElement('div');
+            container.id = `process-${proc.id}`;
+
+            const label = document.createElement('div');
+            label.innerText = `P${proc.id}`;
+            container.appendChild(label);
+
+            const percentageLabel = document.createElement('div');
+            percentageLabel.innerText = '0%';
+            percentageLabel.style.textAlign = 'right';
+            percentageLabel.style.width = '40vw';
+            percentageLabel.style.marginTop = '-1.1rem';
+            container.appendChild(percentageLabel);
+
+            const progressContainer = document.createElement('div');
+            progressContainer.classList.add('outer-div');
+            progressContainer.style.width = '40vw';
+            progressContainer.style.height = '15px';
+            progressContainer.style.margin = '10px';
+
+            const progressBar = document.createElement('div');
+            progressBar.classList.add('inner-class');
+            progressBar.style.width = '0%';
+            progressBar.style.height = '15px';
+            progressBar.style.backgroundColor = 'green';
+            progressContainer.appendChild(progressBar);
+            container.appendChild(progressContainer);
+
+            processDiv.appendChild(container);
+
+            processElements[proc.id] = {
+                label,
+                percentageLabel,
+                progressBar,
+                container
+            };
+        }
+        return processElements[proc.id];
+    }
+
+    function executeNext() {
+        if (completedCount === n) {
+            gantChart();
+            return;
+        }
+
+        enqueueArrivals();
+
+        if (queue.length === 0) {
+            // CPU Idle
+            let nextArrival = Math.min(
+                ...procList.filter(p => !p.completed && p.arrivalTime > time).map(p => p.arrivalTime)
+            );
+            if (isFinite(nextArrival)) {
+                readyQueue.push(['idle', nextArrival - time]);
+                gantChart();
+                time = nextArrival;
+                setTimeout(executeNext, 500);
+                return;
+            }
+        }
+
+        const proc = queue.shift();
+        if (!proc) return;
+
+        const elements = ensureProcessElements(proc);
+        if (proc.start === null) proc.start = time;
+
+        const execTime = Math.min(quantum, proc.remaining);
+
+
+        readyQueue.push([proc.id, execTime]);
+        //GANTT CHART
+        gantChart();
+
+        const barWidth = 40;
+        const completedBefore = proc.originalBurst - proc.remaining;
+        const startPercentage = (completedBefore / proc.originalBurst) * 100;
+        const endPercentage = ((completedBefore + execTime) / proc.originalBurst) * 100;
+
+        elements.progressBar.style.transition = 'none';
+        elements.progressBar.style.width = `${startPercentage}%`;
+        void elements.progressBar.offsetWidth;
+
+        const duration = execTime * 1000;
+        elements.progressBar.style.transition = `width ${duration}ms linear`;
+        elements.progressBar.style.width = `${endPercentage}%`;
+
+        // Animate percentage
+        let currentPercentage = startPercentage;
+        const percentageInterval = setInterval(() => {
+            currentPercentage += (endPercentage - startPercentage) / 100;
+            elements.percentageLabel.innerText = `${Math.round(currentPercentage)}%`;
+            if (currentPercentage >= endPercentage) {
+                clearInterval(percentageInterval);
+                elements.percentageLabel.innerText = `${Math.round(endPercentage)}%`;
+            }
+        }, duration / 100);
+
+        setTimeout(() => {
+            proc.remaining -= execTime;
+            time += execTime;
+
+            // If process finished
+            if (proc.remaining === 0) {
+                proc.completed = true;
+                completedCount++;
+                proc.timeOfCompletion = time;
+                proc.turnAroundTime = proc.timeOfCompletion - proc.arrivalTime;
+                proc.waitingTimeForGetCPU = proc.turnAroundTime - proc.originalBurst;
+                proc.timeGetCPU = proc.start;
+                solutionTable.push({
+                    id: proc.id,
+                    timeGetCPU: proc.timeGetCPU,
+                    arrivalTime: proc.arrivalTime,
+                    timeOfCompletion: proc.timeOfCompletion,
+                    turnAroundTime: proc.turnAroundTime,
+                    waitingTimeForGetCPU: proc.waitingTimeForGetCPU,
+                    burstTime: proc.originalBurst
+                });
+                solution(solutionTable[solutionTable.length - 1]);
+                elements.label.innerText = `P${proc.id} (Completed)`;
+            } else {
+                elements.label.innerText = `P${proc.id} (Paused)`;
+            }
+
+            enqueueArrivals();
+
+            if (!proc.completed && !queue.includes(proc)) {
+                queue.push(proc);
+            }
+
+            executeNext();
+        }, duration);
+    }
+
+    enqueueArrivals();
+    executeNext();
 }
 
 
 
 
-const SRTF=()=>{
 
-    let time_slot = 1;
+// SHORTEST REMAINING TIME FIRST (PRIMITIVE)
+function SRTF() {
     const processDiv = document.getElementById('process');
     processDiv.innerHTML = '';
-    let currentTime = 0;
-    const Done =[];
-  
-    processes.sort((a, b) =>{ 
-        if(a.arrivalTime == b.arrivalTime) return a.burstTime - b.burstTime;
-         return a.arrivalTime - b.arrivalTime;
+    readyQueue.length = 0;
+    solutionTable.length = 0;
+
+    const procList = processes.map(p => ({
+        ...p,
+        originalBurst: p.burstTime,
+        remaining: p.burstTime,
+        completed: false,
+        start: null,
+        progressBar: null,
+        label: null,
+        percentageLabel: null
+    }));
+
+    let time = 0;
+    let completedCount = 0;
+    const n = procList.length;
+    const processElements = {};
+
+    function getNextProcess() {
+        let candidates = procList.filter(p =>
+            p.arrivalTime <= time && !p.completed && p.remaining > 0
+        );
+        if (candidates.length === 0) return null;
+        candidates.sort((a, b) => a.remaining - b.remaining || a.arrivalTime - b.arrivalTime);
+        return candidates[0];
     }
-         
-    ); // Sort processes based on arrival time
-    const Total_Time =[];
-    processes.forEach((vl)=>{
-        Total_Time.push([vl.id,vl.burstTime]);
-    })
-    const queue = [];
-    const Arrived = [];
-    let ind = 0;
-    
-    const Pqueue =[...processes];
-   
-    while (Arrived.length != 0 || Pqueue.length!= 0) {
-       
-       let wtTime =0;
-       if(ind< Pqueue.length && Ctime < Pqueue[ind].arrivalTime && Arrived.length == 0){
-         wtTime =Pqueue[ind].arrivalTime - Ctime;
-          Ctime += wtTime;
-          readyQueue.push(['idle', wtTime])
-           
-       }
 
-       while(Pqueue.length > 0 && Pqueue[0].arrivalTime <= Ctime){
-            console.log('Arrived process: ',Pqueue[0]);
-            Arrived.push(Pqueue[0]);
-            // let index =Pqueue.indexOf(x);
-            Pqueue.shift();
-        
-       }
-      
-    Arrived.sort((a, b) =>{ 
-         return a.burstTime - b.burstTime;    
-    }  
-    ); 
-    //    dequeue.sort((a,b)=>{return b.burstTime >= a.burstTime})
-      let dur= Math.min(time_slot, Arrived[0].burstTime);
-      
-    //   console.log("befor : ", Arrived[0]);
-     if(Arrived.length>0)
-           queue.push({'id':Arrived[0].id, 'burstTime':dur,'waiting' :wtTime});
-      readyQueue.push([Arrived[0].id,dur]);
-      Arrived[0].burstTime -= dur;
-    //   Ctime+= dur;
-  
-      
+    function ensureProcessElements(proc) {
+        if (!processElements[proc.id]) {
+            const container = document.createElement('div');
+            container.id = `process-${proc.id}`;
 
-     let  pr = Total_Time.filter((vl)=>{return vl[0]==Arrived[0].id});
-     
-     let timeGetCPU = Ctime;
+            const label = document.createElement('div');
+            label.innerText = `P${proc.id}`;
+            container.appendChild(label);
 
-//  console.log(pr);
-  Ctime+= dur;
- 
+            const percentageLabel = document.createElement('div');
+            percentageLabel.innerText = '0%';
+            percentageLabel.style.textAlign = 'right';
+            percentageLabel.style.width = '40vw';
+            percentageLabel.style.marginTop = '-1.1rem';
+            container.appendChild(percentageLabel);
 
+            const progressContainer = document.createElement('div');
+            progressContainer.classList.add('outer-div');
+            progressContainer.style.width = '40vw';
+            progressContainer.style.height = '15px';
+            progressContainer.style.margin = '10px';
 
-  let process = Arrived[0];
-  let timeOfCompletion = Ctime;
-  let turnAroundTime = timeOfCompletion - process.arrivalTime ;
-  let waitingTimeForGetCPU =turnAroundTime - pr[0][1] ;
-  
-let isExist = solutionTable.filter((it)=>{
-      return it.id==Arrived[0].id;
-})
-if(Arrived.length>0){
-console.log(isExist);    
-if(isExist.length == 0){
-  solutionTable.push({'id':process.id,'timeGetCPU':timeGetCPU,'arrivalTime':process.arrivalTime,'timeOfCompletion':timeOfCompletion,'turnAroundTime':turnAroundTime,'waitingTimeForGetCPU':waitingTimeForGetCPU,'burstTime': pr[0][1]});
-}
-else{
-    console.log('else',solutionTable);
-    isExist[0].timeOfCompletion = timeOfCompletion;
-    isExist[0].turnAroundTime= turnAroundTime;
-    isExist[0].waitingTimeForGetCPU= waitingTimeForGetCPU;
-    isExist[0].arrivalTime += process.arrivalTime; 
-}
-console.log('if',solutionTable);
-}
+            const progressBar = document.createElement('div');
+            progressBar.classList.add('inner-class');
+            progressBar.style.width = '0%';
+            progressBar.style.height = '15px';
+            progressBar.style.backgroundColor = 'green';
+            progressContainer.appendChild(progressBar);
+            container.appendChild(progressContainer);
 
+            processDiv.appendChild(container);
 
-
-
-
-
-
-
-
-
-
-      if(Arrived[0].burstTime==0){
-        Arrived.shift();
-      }
-     
-    // Arrived.sort((a,b)=>{a.burstTime - b.burstTime});
-    console.log('after : ', Arrived[0]);
-
-      
-     wtTime =0;
-    }
-    
-    console.log('Queue:', queue);
-    Ctime=0;
-
-
-    solutionTable.forEach((it)=>{
-        solution(it);
-    });
-
-    
-    const Comp = [];
-    
-    function executeProcess(index) {
-        if (index >= queue.length) return; // Stop if all processes have been executed
-        const process = queue[index];
-
-        let include = Comp.indexOf(process.id);
-
-        if(include == -1){
-        const label = document.createElement('div');
-        label.innerText = `P${process.id}`;
-        label.setAttribute('id', `l${process.id}`);
-        processDiv.appendChild(label);
-
-        const label2 = document.createElement('div');
-        label2.innerText = `${0}%`;
-        label2.value=0;
-        label2.setAttribute('id',`l2${process.id}`);
-        processDiv.appendChild(label2);
-
-        const newProcess = document.createElement('div');
-        newProcess.classList.add('outer-div');
-        newProcess.style.border = '1px solid black';
-        newProcess.style.width = '50vw';
-        newProcess.style.height = '15px';
-        newProcess.style.margin = '10px';
-
-        const childDiv = document.createElement('div');
-        childDiv.classList.add('inner-class');
-        childDiv.setAttribute('id', `p${process.id}`);
-        childDiv.style.width = '0vw';
-        childDiv.style.height = '15px';
-        childDiv.style.backgroundColor = 'green';
-        newProcess.appendChild(childDiv);
-        processDiv.appendChild(newProcess);
-        Comp.push(process.id);
-        // Calculate start time based on completion time of previous process
+            processElements[proc.id] = {
+                label,
+                percentageLabel,
+                progressBar,
+                container
+            };
         }
-     let label = document.getElementById(`l${process.id}`);
-     let label2 = document.getElementById(`l2${process.id}`);
-     let Cdiv = document.getElementById(`p${process.id}`);
-        setTimeout(() => {
-            const duration = process.burstTime * 1000; // Convert burst time to milliseconds
-            Cdiv.style.transition = `width ${duration}ms linear`;
-           
-           let  total = Total_Time.filter((vl)=>{return vl[0]==process.id});
-        //    console.log(total);
-
-           let addition =0;
-            if(include == -1){
-                Done.push([process.id,process.burstTime]);
-            }
-            else{
-              let  Cpr=Done.filter((vl)=>{ return vl[0]==process.id});
-              addition= Cpr[0][1];
-                // console.log('addi',addition,'Cpr',Cpr);
-                Cpr[0][1]+=(process.burstTime);
-
-            }
-            Cdiv.style.width = ` ${ (((addition +process.burstTime)/total[0][1]) * 50)}vw`;
-        //   console.log('width ',(process.burstTime/total[0][1]) * 50, ' process bt ', process.burstTime, ' total ',total[0][1] );
-            // Update current time
-            currentTime += process.arrivalTime * 1000 + duration;
-            let cover=(process.burstTime* 100) /total[0][1];
-          
-            showPercentages(duration,label2,cover);
-            gantChart(process.id);
-            setTimeout(() => {
-           
-                if( addition +process.burstTime ==total[0][1]){
-                    label.innerText=`P${process.id} Completed`;
-              }
-                executeProcess(index + 1);
-            }, duration);
-          
-        }, process.waiting*1000); // Use startTime as the start time for the current process
+        return processElements[proc.id];
     }
-     
-    // Start with the first process
-    executeProcess(0);
-        
+
+    function executeNext() {
+        if (completedCount === n) {
+            gantChart();
+            return;
+        }
+
+        let proc = getNextProcess();
+
+        // CPU is idle
+        if (!proc) {
+
+            const nextArrival = Math.min(...procList
+                .filter(p => !p.completed && p.arrivalTime > time)
+                .map(p => p.arrivalTime)
+            );
+            if (isFinite(nextArrival)) {
+                readyQueue.push(['idle', nextArrival - time]);
+                time = nextArrival;
+                setTimeout(executeNext, 500);
+                return;
+            }
+        }
+
+        proc = getNextProcess();
+        if (!proc) return;
+
+        const elements = ensureProcessElements(proc);
+        if (proc.start === null) proc.start = time;
+
+        let nextTime = Infinity;
+        for (const p of procList) {
+            if (!p.completed && p !== proc &&
+                p.arrivalTime > time &&
+                p.arrivalTime < time + proc.remaining) {
+                nextTime = Math.min(nextTime, p.arrivalTime);
+            }
+        }
+        const execTime = Math.min(
+            proc.remaining,
+            nextTime === Infinity ? proc.remaining : nextTime - time
+        );
+
+        readyQueue.push([proc.id, execTime]);
+
+        // Animate progress bar
+        const completedBefore = proc.originalBurst - proc.remaining;
+        const startPercentage = (completedBefore / proc.originalBurst) * 100;
+        const endPercentage = ((completedBefore + execTime) / proc.originalBurst) * 100;
+
+        elements.progressBar.style.transition = 'none';
+        elements.progressBar.style.width = `${startPercentage}%`;
+        void elements.progressBar.offsetWidth;
+
+        const duration = execTime * 1000;
+        elements.progressBar.style.transition = `width ${duration}ms linear`;
+        elements.progressBar.style.width = `${endPercentage}%`;
+
+        // Animate percentage
+        let currentPercentage = startPercentage;
+        const percentageInterval = setInterval(() => {
+            currentPercentage += (endPercentage - startPercentage) / 100;
+            elements.percentageLabel.innerText = `${Math.round(currentPercentage)}%`;
+            if (currentPercentage >= endPercentage) {
+                clearInterval(percentageInterval);
+                elements.percentageLabel.innerText = `${Math.round(endPercentage)}%`;
+            }
+        }, duration / 100);
+
+        // Update process state after animation
+        setTimeout(() => {
+            proc.remaining -= execTime;
+            time += execTime;
+
+            if (proc.remaining === 0) {
+                proc.completed = true;
+                completedCount++;
+                proc.timeOfCompletion = time;
+                proc.turnAroundTime = proc.timeOfCompletion - proc.arrivalTime;
+                proc.waitingTimeForGetCPU = proc.turnAroundTime - proc.originalBurst;
+                solutionTable.push({
+                    id: proc.id,
+                    timeGetCPU: proc.start,
+                    arrivalTime: proc.arrivalTime,
+                    timeOfCompletion: proc.timeOfCompletion,
+                    turnAroundTime: proc.turnAroundTime,
+                    waitingTimeForGetCPU: proc.waitingTimeForGetCPU,
+                    burstTime: proc.originalBurst
+                });
+                solution(solutionTable[solutionTable.length - 1]);
+                elements.label.innerText = `P${proc.id} (Completed)`;
+            } else {
+                elements.label.innerText = `P${proc.id} (Paused)`;
+            }
+
+            gantChart();
+            executeNext();
+        }, duration);
+    }
+
+    executeNext();
 }
 
 
 
 
+// RUN BTN FUNCTION
 runBtn.addEventListener("click", () => {
-   
-    runBtn.setAttribute("disabled",true);
-    addBtn.setAttribute("disabled",true);
-    algo.setAttribute("disabled",true);
-    if(algo.value=='fcfs'){
-        console.log("fcfs");
-         fcfs();
-        }
-    else if(algo.value=='sjf'){
-        console.log("sjf");
-         SJF();
+
+    runBtn.setAttribute("disabled", true);
+    addBtn.setAttribute("disabled", true);
+    algo.setAttribute("disabled", true);
+    if (algo.value == 'fcfs') {
+        fcfs();
     }
-    else if(algo.value=='priority'){
-        console.log("pr");
+    else if (algo.value == 'sjf') {
+        SJF();
+    }
+    else if (algo.value == 'priority') {
         Priority();
     }
-    else if(algo.value=='ljf'){
-        console.log("ljf");
-         LJF();
+    else if (algo.value == 'ljf') {
+        LJF();
     }
-    else if(algo.value=='round'){
-        console.log("round");
-         ROUND_ROBIN();
+    else if (algo.value == 'round') {
+        roundRobin();
     }
-    else if(algo.value=='srtf') SRTF();
-    else{
-        alert("Some Error Occured !!!!");
+    else if (algo.value == 'srtf') {
+        SRTF();
+    }
+    else {
+        alert("Some Went Wrong !!!!");
         throw 'error!!';
     }
 });
-refresh.addEventListener('click',()=>{
+
+//REFRESH BTN FUNCTION
+refresh.addEventListener('click', () => {
     window.location.reload();
 })
